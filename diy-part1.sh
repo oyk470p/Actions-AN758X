@@ -19,11 +19,12 @@ mkdir -p "$PKG_DIR"
 # 见 files/sbin/tempinfo（概览页「温度」行：CPU / WiFi / PON 温度 + 光功率）
 # ---------------------------------------------------------
 ADD_AIROHA_NPU=true    # luci-app-airoha-npu：Airoha SoC 状态页（NPU/CPU/Frame Engine/PPE）
-ADD_FLUENT=true       # luci-theme-fluent：Fluent 2 风格主题
+ADD_AURORA=true        # luci-theme-aurora：Aurora 风格主题
+ADD_FLUENT=false       # luci-theme-fluent：Fluent 2 风格主题
 ADD_FLUENT_LITE=false  # luci-theme-fluent-lite：轻量版（与 fluent 互斥，二选一）
 ADD_FLUENT_DASH=false  # luci-mod-fluentdashboard：可选状态概览卡片
 ADD_PASSWALL=false     # luci-app-passwall（含依赖源）
-ADD_OPENCLASH=false    # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
+ADD_OPENCLASH=true     # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
 ADD_MOSDNS=false       # luci-app-mosdns + v2ray-geodata
 ADD_LUCKY=false        # luci-app-lucky（DDNS + socat）
 ADD_TAILSCALE=false    # luci-app-tailscale
@@ -242,6 +243,11 @@ if [ "$ADD_AIROHA_NPU" = "true" ]; then
   echo "   po/zh_Hans: $(ls -1 "$PODIR/zh_Hans/" 2>/dev/null | tr '\n' ' ')"
 fi
 
+# --- aurora ---
+if [ "$ADD_AURORA" = "true" ]; then
+  clone https://github.com/eamonxg/luci-theme-aurora "$PKG_DIR/luci-theme-aurora" master
+  clone https://github.com/eamonxg/luci-app-aurora-config "$PKG_DIR/luci-app-aurora-config" master
+fi
 # --- passwall ---
 if [ "$ADD_PASSWALL" = "true" ]; then
   clone https://github.com/xiaorouji/openwrt-passwall-packages "$PKG_DIR/openwrt-passwall-packages" main
