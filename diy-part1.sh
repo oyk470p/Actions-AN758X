@@ -30,6 +30,7 @@ ADD_AURORA=true        # luci-theme-aurora：aurora 风格主题
 ADD_FLUENT=false       # luci-theme-fluent：Fluent 2 风格主题
 ADD_FLUENT_LITE=false  # luci-theme-fluent-lite：轻量版（与 fluent 互斥，二选一）
 ADD_FLUENT_DASH=false  # luci-mod-fluentdashboard：可选状态概览卡片
+ADD_VMLINUXBTF=true
 ADD_HONK=true          # luci-app-honk
 ADD_PASSWALL2=true     # luci-app-passwall2（只用 feeds 的依赖包）
 ADD_OPENCLASH=true     # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
@@ -281,14 +282,21 @@ if [ "$ADD_AURORA" = "true" ]; then
   clone https://github.com/eamonxg/luci-theme-aurora "$PKG_DIR/luci-theme-aurora" master
   clone https://github.com/eamonxg/luci-app-aurora-config "$PKG_DIR/luci-theme-aurora" master
 fi
+if [ "$ADD_VMLINUXBTF" = "true" ]; then
+  git clone --depth 1 https://github.com/kenzok8/vmlinux-btf.git /tmp/vmlinux-btf
+  cp -r /tmp/vmlinux-btf/vmlinux-btf package/
+  rm -rf /tmp/vmlinux-btf
+fi
 # --- honk ---
 if [ "$ADD_HONK" = "true" ]; then
-  clone "https://github.com/QiuSimons/luci-app-honk" "package/honk" master 
+  clone https://github.com/QiuSimons/luci-app-honk "package/honk" master 
 fi
 # --- passwall2 ---
 if [ "$ADD_PASSWALL" = "true" ]; then
-  clone "https://github.com/Openwrt-Passwall/openwrt-passwall2" "package/passwall2" main
-  clone "https://github.com/Openwrt-Passwall/openwrt-passwall-packages" "package/passwall-packages" main
+  clone https://github.com/Openwrt-Passwall/openwrt-passwall2 "$PKG_DIR/passwall2" main
+  clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages "$PKG_DIR/passwall-packages" main
+  mv "$PKG_DIR/passwall2/luci-app-passwall2" "$PKG_DIR/luci-app-passwall2" 2>/dev/null
+  rm -rf "$PKG_DIR/passwall2"  
 fi
 # --- openclash ---
 if [ "$ADD_OPENCLASH" = "true" ]; then
