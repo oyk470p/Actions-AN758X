@@ -26,22 +26,24 @@ mkdir -p "$PKG_DIR"
 #   Package，package-metadata 按扫描顺序挑一个，行为不可预期。所以只拷 luci
 #   前端，本体一律用 feeds 的。
 ADD_AIROHA_NPU=true    # luci-app-airoha-npu：Airoha SoC 状态页（NPU/CPU/Frame Engine/PPE）
-ADD_FLUENT=true        # luci-theme-fluent：Fluent 2 风格主题
+ADD_AURORA=true        # luci-theme-aurora：aurora 风格主题
+ADD_FLUENT=false       # luci-theme-fluent：Fluent 2 风格主题
 ADD_FLUENT_LITE=false  # luci-theme-fluent-lite：轻量版（与 fluent 互斥，二选一）
 ADD_FLUENT_DASH=false  # luci-mod-fluentdashboard：可选状态概览卡片
-ADD_PASSWALL=true      # luci-app-passwall（只用 feeds 的依赖包）
-ADD_OPENCLASH=true     # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
-ADD_MOSDNS=true        # luci-app-mosdns（本体只用 feeds 的 mosdns）
-ADD_LUCKY=true         # luci-app-lucky（DDNS + socat）
-ADD_TAILSCALE=true     # luci-app-tailscale（本体只用 feeds 的 tailscale）
-ADD_OPENLIST=true      # luci-app-openlist2（alist/openlist 挂载）
-ADD_SMARTDNS=true      # luci-app-smartdns（本体只用 feeds 的 smartdns）
-ADD_EASYTIER=true      # luci-app-easytier（另需 kmod-tun + easytier 本体，Rust 编译较慢）
-ADD_POWEROFF=true      # luci-app-poweroffdevice（关机）
-ADD_OWQ_WOL=true       # luci-app-owq-wol（网络唤醒，依赖 etherwake）
-ADD_WATCHDOG=true      # luci-app-watchdog（看门狗，包在子目录，需特殊处理）
-ADD_TASKPLAN=true      # luci-app-taskplan（定时任务）
-ADD_OAF=true           # luci-app-oaf（应用过滤，含内核模块，高风险）
+ADD_HONK=true          # luci-app-honk
+ADD_PASSWALL2=true     # luci-app-passwall2（只用 feeds 的依赖包）
+ADD_OPENCLASH2=true    # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
+ADD_MOSDNS=false        # luci-app-mosdns（本体只用 feeds 的 mosdns）
+ADD_LUCKY=false         # luci-app-lucky（DDNS + socat）
+ADD_TAILSCALE=false     # luci-app-tailscale（本体只用 feeds 的 tailscale）
+ADD_OPENLIST=false      # luci-app-openlist2（alist/openlist 挂载）
+ADD_SMARTDNS=false      # luci-app-smartdns（本体只用 feeds 的 smartdns）
+ADD_EASYTIER=false      # luci-app-easytier（另需 kmod-tun + easytier 本体，Rust 编译较慢）
+ADD_POWEROFF=false      # luci-app-poweroffdevice（关机）
+ADD_OWQ_WOL=false       # luci-app-owq-wol（网络唤醒，依赖 etherwake）
+ADD_WATCHDOG=false     # luci-app-watchdog（看门狗，包在子目录，需特殊处理）
+ADD_TASKPLAN=false      # luci-app-taskplan（定时任务）
+ADD_OAF=false           # luci-app-oaf（应用过滤，含内核模块，高风险）
 ADD_LUCI_APP=true       # qwe-qaq/luci-app 仓库（monorepo）
                         #   ├─ luci-app-natmode     NAT 类型三选一（网络 → NAT 类型）
                         #   ├─ luci-app-pon-status  PON 光模块卡片（概览页「系统」下一格）
@@ -275,27 +277,81 @@ if [ "$ADD_AIROHA_NPU" = "true" ]; then
   echo "   po/zh_Hans: $(ls -1 "$PODIR/zh_Hans/" 2>/dev/null | tr '\n' ' ')"
 fi
 
-# --- passwall ---
+# --- honk ---
+if [ "$ADD_HONK" = "true" ]; then
+  group "覆盖 feeds/luci 中的 dae / honk，并将 honk 放入 package/custom"
+  rm -rf feeds/luci/applications/luci-app-honk
+  clone https://github.com/QiuSimons/luci-app-honk.git  "$PKG_DIR/honk"  "" --depth=1
+  # ------------------------------------------------------------------
+  # 预放 honk-core.bin：--if-needed 检测到无 stamp 的产物会直接复用，
+  # 跳过 zig/bpf-linker/cargo 工具链校验和源码编译
+  # ------------------------------------------------------------------
+  HONK_DIR="$PKG_DIR/honk/honk"
+  HONK_OUT="$HONK_DIR/files/honk-core.bin"
+  if [ -s "$HONK_OUT" ]; then
+      log " ↷ honk-core.bin 已存在，跳过预放"
+  else
+      group "预放 honk-core.bin（免 zig 工具链）"
+      curl -fsSL --retry 3 -o /tmp/honk-core.tar.gz \
+        "https://github.com/daeuniverse/honk/releases/download/v0.1.0-beta.2/honk-core-v0.1.0-beta.2-aarch64-unknown-linux-musl-stock-native-api.tar.gz"
+      echo "bef60542db1d29fa87ad3b5300d0960a1bd173b7ba1121b423b27985a202eb2c  /tmp/honk-core.tar.gz" | sha256sum -c -
+      rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
+      tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
+      core="$(find /tmp/honkpkg -type f -name honk-core -print -quit)"
+      [ -n "$core" ] || die "tarball 内未找到 honk-core，release 结构可能已变"
+      mkdir -p "$HONK_DIR/files"
+      cp "$core" "$HONK_OUT"
+      log " ✅ 已预放 honk-core.bin ($(du -h "$HONK_OUT" | cut -f1))"
+      endgroup
+   fi
+   # ------------------------------------------------------------------
+   # honk 仓库的 Makefile 把 PKG_HASH 写成大写 SKIP 占位，
+   # OpenWrt scripts/download.pl 只识别小写 skip 跳过校验；
+   # 大写 SKIP 会触发 "Cannot find appropriate hash command ..."。
+   # 这里把 PKG_HASH / PKG_MIRROR_HASH 的纯 SKIP 占位统一改成 skip。
+   # 只匹配纯占位行，不会误伤真实哈希。
+   # ------------------------------------------------------------------
+   sed -i 's/?=SKIP$/?=skip/' "$PKG_DIR/honk/honk/Makefile"
+
+   if [ -d "$PKG_DIR/honk" ]; then
+     honk_patched=0
+     while IFS= read -r -d '' mkfile; do
+       if grep -qE '^[[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*SKIP[[:space:]]*$' "$mkfile"; then
+         sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' "$mkfile"
+         log "  ✏ 修正 $(basename "$(dirname "$mkfile")")/Makefile：PKG_*HASH SKIP → skip"
+         honk_patched=$((honk_patched + 1))
+       fi
+     done < <(find "$PKG_DIR/honk" -type f -name Makefile -print0)
+     log "  ✅ honk Makefile 哈希占位修正: ${honk_patched} 处"
+   fi
+   # 一行搞定如下
+   #sed -i -E -e 's/[[:space:]]*\+v2ray-(geoip|geosite)//g' \
+   #          -e '/^[[:space:]]*\\[[:space:]]*$/d' \
+   #          feeds/luci/applications/luci-app-dae/dae/Makefile \
+   #          "$PKG_DIR/honk/honk/Makefile"
+   endgroup
+fi
+# --- passwall2 ---
 # 源已从 xiaorouji 迁到 Openwrt-Passwall 组织（旧地址 404）。
 # ⚠ 只拷 luci-app-passwall 子目录：openwrt-passwall-packages 是 monorepo，
 #   里面 xray-core / sing-box / hysteria / naiveproxy / shadowsocks-rust …
 #   全部与 feeds 同名，整仓拷进来就是两份同名包。依赖一律用 feeds 的。
 if [ "$ADD_PASSWALL" = "true" ]; then
   PW_TMP="$(mktemp -d)/pw"
-  if clone https://github.com/Openwrt-Passwall/openwrt-passwall "$PW_TMP" main \
-     && [ -f "$PW_TMP/luci-app-passwall/Makefile" ]; then
-    rm -rf "$PKG_DIR/luci-app-passwall"
-    cp -r "$PW_TMP/luci-app-passwall" "$PKG_DIR/"
-    echo "✅ 已拷贝: luci-app-passwall"
+  if clone https://github.com/Openwrt-Passwall/openwrt-passwall2 "$PW_TMP" main \
+     && [ -f "$PW_TMP/luci-app-passwall2/Makefile" ]; then
+    rm -rf "$PKG_DIR/luci-app-passwall2"
+    cp -r "$PW_TMP/luci-app-passwall2" "$PKG_DIR/"
+    echo "✅ 已拷贝: luci-app-passwall2"
   else
-    echo "::error::luci-app-passwall 拉取失败或结构变化"
+    echo "::error::luci-app-passwall2 拉取失败或结构变化"
   fi
   rm -rf "$PW_TMP"
 fi
 # --- openclash ---
 if [ "$ADD_OPENCLASH" = "true" ]; then
   echo "::warning::OpenClash 会触发 Ruby/Rust 编译，耗时极长"
-  clone https://github.com/vernesong/OpenClash "$PKG_DIR/OpenClash" master
+  clone https://github.com/vernesong/OpenClash "$PKG_DIR/OpenClash" dev pkg
   mv "$PKG_DIR/OpenClash/luci-app-openclash" "$PKG_DIR/luci-app-openclash" 2>/dev/null
   rm -rf "$PKG_DIR/OpenClash"
 fi
@@ -583,7 +639,8 @@ if [ -n "$(ls -A "$PKG_DIR" 2>/dev/null)" ]; then
   # 还不易察觉。所以这里和 config 必须同步改。
   [ "$ADD_FLUENT"    = "true" ] && REQUIRED="$REQUIRED luci-theme-fluent"
   [ "$ADD_OPENCLASH" = "true" ] && REQUIRED="$REQUIRED luci-app-openclash"
-  [ "$ADD_PASSWALL"  = "true" ] && REQUIRED="$REQUIRED luci-app-passwall"
+  [ "$ADD_PASSWALL2" = "true" ] && REQUIRED="$REQUIRED luci-app-passwall2"
+  [ "$ADD_HONK"      = "true" ] && REQUIRED="$REQUIRED luci-app-honk"
   [ "$ADD_MOSDNS"    = "true" ] && REQUIRED="$REQUIRED luci-app-mosdns"
   [ "$ADD_LUCKY"     = "true" ] && REQUIRED="$REQUIRED luci-app-lucky"
   [ "$ADD_TAILSCALE" = "true" ] && REQUIRED="$REQUIRED luci-app-tailscale"
