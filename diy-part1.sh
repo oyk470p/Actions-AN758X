@@ -279,79 +279,17 @@ fi
 
 # --- honk ---
 if [ "$ADD_HONK" = "true" ]; then
-  group "覆盖 feeds/luci 中的 dae / honk，并将 honk 放入 package/custom"
-  rm -rf feeds/luci/applications/luci-app-honk
-  clone https://github.com/QiuSimons/luci-app-honk.git  "$PKG_DIR/honk"  "" --depth=1
-  # ------------------------------------------------------------------
-  # 预放 honk-core.bin：--if-needed 检测到无 stamp 的产物会直接复用，
-  # 跳过 zig/bpf-linker/cargo 工具链校验和源码编译
-  # ------------------------------------------------------------------
-  HONK_DIR="$PKG_DIR/honk/honk"
-  HONK_OUT="$HONK_DIR/files/honk-core.bin"
-  if [ -s "$HONK_OUT" ]; then
-      log " ↷ honk-core.bin 已存在，跳过预放"
-  else
-      group "预放 honk-core.bin（免 zig 工具链）"
-      curl -fsSL --retry 3 -o /tmp/honk-core.tar.gz \
-        "https://github.com/daeuniverse/honk/releases/download/v0.1.0-beta.2/honk-core-v0.1.0-beta.2-aarch64-unknown-linux-musl-stock-native-api.tar.gz"
-      echo "bef60542db1d29fa87ad3b5300d0960a1bd173b7ba1121b423b27985a202eb2c  /tmp/honk-core.tar.gz" | sha256sum -c -
-      rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
-      tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
-      core="$(find /tmp/honkpkg -type f -name honk-core -print -quit)"
-      [ -n "$core" ] || die "tarball 内未找到 honk-core，release 结构可能已变"
-      mkdir -p "$HONK_DIR/files"
-      cp "$core" "$HONK_OUT"
-      log " ✅ 已预放 honk-core.bin ($(du -h "$HONK_OUT" | cut -f1))"
-      endgroup
-   fi
-   # ------------------------------------------------------------------
-   # honk 仓库的 Makefile 把 PKG_HASH 写成大写 SKIP 占位，
-   # OpenWrt scripts/download.pl 只识别小写 skip 跳过校验；
-   # 大写 SKIP 会触发 "Cannot find appropriate hash command ..."。
-   # 这里把 PKG_HASH / PKG_MIRROR_HASH 的纯 SKIP 占位统一改成 skip。
-   # 只匹配纯占位行，不会误伤真实哈希。
-   # ------------------------------------------------------------------
-   sed -i 's/?=SKIP$/?=skip/' "$PKG_DIR/honk/honk/Makefile"
-
-   if [ -d "$PKG_DIR/honk" ]; then
-     honk_patched=0
-     while IFS= read -r -d '' mkfile; do
-       if grep -qE '^[[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*SKIP[[:space:]]*$' "$mkfile"; then
-         sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' "$mkfile"
-         log "  ✏ 修正 $(basename "$(dirname "$mkfile")")/Makefile：PKG_*HASH SKIP → skip"
-         honk_patched=$((honk_patched + 1))
-       fi
-     done < <(find "$PKG_DIR/honk" -type f -name Makefile -print0)
-     log "  ✅ honk Makefile 哈希占位修正: ${honk_patched} 处"
-   fi
-   # 一行搞定如下
-   #sed -i -E -e 's/[[:space:]]*\+v2ray-(geoip|geosite)//g' \
-   #          -e '/^[[:space:]]*\\[[:space:]]*$/d' \
-   #          feeds/luci/applications/luci-app-dae/dae/Makefile \
-   #          "$PKG_DIR/honk/honk/Makefile"
-   endgroup
+  clone "https://github.com/QiuSimons/luci-app-honk" "package/honk" master 
 fi
 # --- passwall2 ---
-# 源已从 xiaorouji 迁到 Openwrt-Passwall 组织（旧地址 404）。
-# ⚠ 只拷 luci-app-passwall 子目录：openwrt-passwall-packages 是 monorepo，
-#   里面 xray-core / sing-box / hysteria / naiveproxy / shadowsocks-rust …
-#   全部与 feeds 同名，整仓拷进来就是两份同名包。依赖一律用 feeds 的。
 if [ "$ADD_PASSWALL" = "true" ]; then
-  PW_TMP="$(mktemp -d)/pw"
-  if clone https://github.com/Openwrt-Passwall/openwrt-passwall2 "$PW_TMP" main \
-     && [ -f "$PW_TMP/luci-app-passwall2/Makefile" ]; then
-    rm -rf "$PKG_DIR/luci-app-passwall2"
-    cp -r "$PW_TMP/luci-app-passwall2" "$PKG_DIR/"
-    echo "✅ 已拷贝: luci-app-passwall2"
-  else
-    echo "::error::luci-app-passwall2 拉取失败或结构变化"
-  fi
-  rm -rf "$PW_TMP"
+  clone "https://github.com/Openwrt-Passwall/openwrt-passwall2" "package/passwall2" main
+  clone "https://github.com/Openwrt-Passwall/openwrt-passwall-packages" "package/passwall-packages" main
 fi
 # --- openclash ---
 if [ "$ADD_OPENCLASH" = "true" ]; then
   echo "::warning::OpenClash 会触发 Ruby/Rust 编译，耗时极长"
-  clone https://github.com/vernesong/OpenClash "$PKG_DIR/OpenClash" dev pkg
+  clone https://github.com/vernesong/OpenClash "$PKG_DIR/OpenClash" dev
   mv "$PKG_DIR/OpenClash/luci-app-openclash" "$PKG_DIR/luci-app-openclash" 2>/dev/null
   rm -rf "$PKG_DIR/OpenClash"
 fi
