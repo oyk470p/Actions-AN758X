@@ -7,7 +7,7 @@ name: Build PonWrt (Airoha AN758x PON)
 env:
   BUILD_ROOT: /workdir
   SOURCE: ${{ github.event.inputs.source || 'pbs05/ponwrt' }}
-  FW_AUTHOR: ${{ github.event.inputs.fw_author || 'qwe' }}
+  FW_AUTHOR: ${{ github.event.inputs.fw_author || 'oyk470p' }}
   REPO_URL: ${{ github.event.inputs.source == 'fork' && 'https://github.com/qwe-qaq/ponwrt' || 'https://github.com/pbs05/ponwrt' }}
   FEEDS_CONF: ''
   DIY_P1_SH: diy-part1.sh
@@ -32,7 +32,7 @@ env:
   BUILD_SCOPE: ${{ github.event.inputs.scope || 'firmware' }}
   IGNORE_CACHE: ${{ github.event.inputs.ignore_cache || 'false' }}
   FW_BUILD_TIME: ''                 # 留空 = 自动取构建时时间（Asia/Shanghai）
-  FW_DESC_SUFFIX: ''               # 留空 = "· qwe · <构建时间>"；填了则完全自定义
+  FW_DESC_SUFFIX: ''               # 留空 = "· oyk470p · <构建时间>"；填了则完全自定义
   OPT_CRYPTO_ARM64CE: ${{ github.event.inputs.opt_arm64ce == '1' && '1' || '0' }}
   OPT_CRYPTO_CHACHA:  ${{ github.event.inputs.opt_chacha  == '1' && '1' || '0' }}
   OPT_CRYPTO_EIP93:   ${{ github.event.inputs.opt_eip93   == '1' && '1' || '0' }}
@@ -68,7 +68,7 @@ on:
       profile:
         description: '机型 profile (all=全机型编译)'
         required: true
-        default: 'h3c_hm2004-du'
+        default: 'nokia_xg-040g-md-ubi'
         type: choice
         options:
           - fiberhome_hg5585f-cu
@@ -144,9 +144,9 @@ on:
           - 'true'
           - 'false'
       fw_author:
-        description: '覆盖固件版本后缀的作者名（LuCI 概览页「固件版本」）。留空 = qwe'
+        description: '覆盖固件版本后缀的作者名（LuCI 概览页「固件版本」）。留空 = oyk470p'
         required: false
-        default: 'qwe'
+        default: 'oyk470p'
       upload_release:
         description: '固件发布到 Release（false 则只传 Artifact）'
         required: false
@@ -310,7 +310,7 @@ jobs:
 
           # 输入项为空时回退到 workflow 级默认值，确保 diy-part2.sh 拿到的
           # 始终是确定值，而不是空串（空串会让 LuCI 概览页显示 "·  ·"）。
-          echo "FW_AUTHOR=${FW_AUTHOR:-qwe}" >> "$GITHUB_ENV"
+          echo "FW_AUTHOR=${FW_AUTHOR:-oyk470p}" >> "$GITHUB_ENV"
 
           # 加密开关同样固化一遍：写进 GITHUB_ENV 后，即便哪天 workflow 级
           # env 表达式改了，本 job 后续步骤读到的仍是本次解析出的确定值。
