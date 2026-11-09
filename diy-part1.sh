@@ -32,7 +32,7 @@ ADD_FLUENT_LITE=false  # luci-theme-fluent-lite：轻量版（与 fluent 互斥�
 ADD_FLUENT_DASH=false  # luci-mod-fluentdashboard：可选状态概览卡片
 ADD_HONK=true          # luci-app-honk
 ADD_PASSWALL2=true     # luci-app-passwall2（只用 feeds 的依赖包）
-ADD_OPENCLASH2=true    # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
+ADD_OPENCLASH=true     # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
 ADD_MOSDNS=false        # luci-app-mosdns（本体只用 feeds 的 mosdns）
 ADD_LUCKY=false         # luci-app-lucky（DDNS + socat）
 ADD_TAILSCALE=false     # luci-app-tailscale（本体只用 feeds 的 tailscale）
@@ -276,7 +276,11 @@ if [ "$ADD_AIROHA_NPU" = "true" ]; then
   fi
   echo "   po/zh_Hans: $(ls -1 "$PODIR/zh_Hans/" 2>/dev/null | tr '\n' ' ')"
 fi
-
+# --- aurora ---
+if [ "$ADD_AURORA" = "true" ]; then
+  clone https://github.com/eamonxg/luci-theme-aurora "$PKG_DIR/luci-theme-aurora" master
+  clone https://github.com/eamonxg/luci-app-aurora-config "$PKG_DIR/luci-theme-aurora" master
+fi
 # --- honk ---
 if [ "$ADD_HONK" = "true" ]; then
   clone "https://github.com/QiuSimons/luci-app-honk" "package/honk" master 
@@ -577,8 +581,6 @@ if [ -n "$(ls -A "$PKG_DIR" 2>/dev/null)" ]; then
   # 还不易察觉。所以这里和 config 必须同步改。
   [ "$ADD_FLUENT"    = "true" ] && REQUIRED="$REQUIRED luci-theme-fluent"
   [ "$ADD_OPENCLASH" = "true" ] && REQUIRED="$REQUIRED luci-app-openclash"
-  [ "$ADD_PASSWALL2" = "true" ] && REQUIRED="$REQUIRED luci-app-passwall2"
-  [ "$ADD_HONK"      = "true" ] && REQUIRED="$REQUIRED luci-app-honk"
   [ "$ADD_MOSDNS"    = "true" ] && REQUIRED="$REQUIRED luci-app-mosdns"
   [ "$ADD_LUCKY"     = "true" ] && REQUIRED="$REQUIRED luci-app-lucky"
   [ "$ADD_TAILSCALE" = "true" ] && REQUIRED="$REQUIRED luci-app-tailscale"
