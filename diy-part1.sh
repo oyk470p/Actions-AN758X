@@ -292,11 +292,9 @@ if [ "$ADD_HONK" = "true" ]; then
   clone https://github.com/QiuSimons/luci-app-honk "package/honk" master 
 fi
 # --- passwall2 ---
-if [ "$ADD_PASSWALL" = "true" ]; then
-  clone https://github.com/Openwrt-Passwall/openwrt-passwall2 "$PKG_DIR/passwall2" main
-  clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages "$PKG_DIR/passwall-packages" main
-  mv "$PKG_DIR/passwall2/luci-app-passwall2" "$PKG_DIR/luci-app-passwall2" 2>/dev/null
-  rm -rf "$PKG_DIR/passwall2"  
+if [ "$ADD_PASSWALL2" = "true" ]; then
+  clone https://github.com/Openwrt-Passwall/openwrt-passwall2 "package/passwall2" main
+  clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages "package/passwall-packages" main
 fi
 # --- openclash ---
 if [ "$ADD_OPENCLASH" = "true" ]; then
