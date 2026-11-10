@@ -289,7 +289,7 @@ if [ "$ADD_VMLINUXBTF" = "true" ]; then
 fi
 # --- honk ---
 if [ "$ADD_HONK" = "true" ]; then
-  clone https://github.com/QiuSimons/luci-app-honk "package/honk" master 
+  clone https://github.com/szwjp/luci-app-honk "package/honk" main 
 fi
 # --- passwall2 ---
 if [ "$ADD_PASSWALL2" = "true" ]; then
