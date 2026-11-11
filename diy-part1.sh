@@ -31,7 +31,7 @@ ADD_FLUENT=false       # luci-theme-fluent：Fluent 2 风格主题
 ADD_FLUENT_LITE=false  # luci-theme-fluent-lite：轻量版（与 fluent 互斥，二选一）
 ADD_FLUENT_DASH=false  # luci-mod-fluentdashboard：可选状态概览卡片
 ADD_VMLINUXBTF=true
-ADD_HONK=false          # luci-app-honk
+ADD_HONK=true          # luci-app-honk
 ADD_PASSWALL2=true     # luci-app-passwall2（只用 feeds 的依赖包）
 ADD_OPENCLASH=true     # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
 ADD_MOSDNS=false        # luci-app-mosdns（本体只用 feeds 的 mosdns）
@@ -289,7 +289,7 @@ if [ "$ADD_VMLINUXBTF" = "true" ]; then
 fi
 # --- honk ---
 if [ "$ADD_HONK" = "true" ]; then
-  clone https://github.com/szwjp/luci-app-honk "package/honk" main 
+  clone https://github.com/kenzok8/openwrt-honk "package/honk" main 
 fi
 # --- passwall2 ---
 if [ "$ADD_PASSWALL2" = "true" ]; then
