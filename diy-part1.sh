@@ -238,11 +238,11 @@ fi
 # --- aurora ---
 if [ "$ADD_AURORA" = "true" ]; then
   clone https://github.com/eamonxg/luci-theme-aurora "$PKG_DIR/luci-theme-aurora" master
-  clone https://github.com/eamonxg/luci-app-aurora-config "$PKG_DIR/luci-theme-aurora" master
+  clone https://github.com/eamonxg/luci-app-aurora-config "$PKG_DIR/luci-app-aurora-config" master
 fi
 # --- honk ---
 if [ "$ADD_HONK" = "true" ]; then
-  clone https://github.com/kenzok8/openwrt-honk "package/honk" main 
+  clone https://github.com/szwjp/luci-app-honk "package/honk" main 
 fi
 # --- passwall2 ---
 if [ "$ADD_PASSWALL2" = "true" ]; then
