@@ -19,21 +19,24 @@ mkdir -p "$PKG_DIR"
 # 温度不走插件：autocore 的 /sbin/tempinfo 提供（见 files/sbin/tempinfo）
 # ---------------------------------------------------------
 ADD_AIROHA_NPU=true    # luci-app-airoha-npu：Airoha SoC 状态页（NPU/CPU/Frame Engine/PPE）
-ADD_FLUENT=true        # luci-theme-fluent：Fluent 2 风格主题
+ADD_AURORA=false        # luci-theme-aurora：aurora 风格主题
+ADD_FLUENT=false        # luci-theme-fluent：Fluent 2 风格主题
 ADD_FLUENT_LITE=false  # luci-theme-fluent-lite：轻量版（与 fluent 互斥，二选一）
 ADD_FLUENT_DASH=false  # luci-mod-fluentdashboard：可选状态概览卡片
-ADD_PASSWALL=true      # luci-app-passwall（只用 feeds 的依赖包）
-ADD_OPENCLASH=true     # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
-ADD_MOSDNS=true        # luci-app-mosdns（本体只用 feeds 的 mosdns）
-ADD_LUCKY=true         # luci-app-lucky（DDNS + socat）
-ADD_TAILSCALE=true     # luci-app-tailscale（本体只用 feeds 的 tailscale）
-ADD_OPENLIST=true      # luci-app-openlist2（alist/openlist 挂载）
-ADD_SMARTDNS=true      # luci-app-smartdns（本体只用 feeds 的 smartdns）
-ADD_EASYTIER=true      # luci-app-easytier（另需 kmod-tun + easytier 本体，Rust 编译较慢）
+ADD_HONK=true          # luci-app-honk
+ADD_PASSWALL=false      # luci-app-passwall（只用 feeds 的依赖包）
+ADD_PASSWALL2=false      # luci-app-passwall2（只用 feeds 的依赖包）
+ADD_OPENCLASH=false     # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
+ADD_MOSDNS=false       # luci-app-mosdns（本体只用 feeds 的 mosdns）
+ADD_LUCKY=false        # luci-app-lucky（DDNS + socat）
+ADD_TAILSCALE=false    # luci-app-tailscale（本体只用 feeds 的 tailscale）
+ADD_OPENLIST=false     # luci-app-openlist2（alist/openlist 挂载）
+ADD_SMARTDNS=false     # luci-app-smartdns（本体只用 feeds 的 smartdns）
+ADD_EASYTIER=false     # luci-app-easytier（另需 kmod-tun + easytier 本体，Rust 编译较慢）
 ADD_POWEROFF=true      # luci-app-poweroffdevice（关机）
-ADD_OWQ_WOL=true       # luci-app-owq-wol（网络唤醒，依赖 etherwake）
-ADD_WATCHDOG=true      # luci-app-watchdog（看门狗，包在子目录，需特殊处理）
-ADD_TASKPLAN=true      # luci-app-taskplan（定时任务）
+ADD_OWQ_WOL=false      # luci-app-owq-wol（网络唤醒，依赖 etherwake）
+ADD_WATCHDOG=false     # luci-app-watchdog（看门狗，包在子目录，需特殊处理）
+ADD_TASKPLAN=false     # luci-app-taskplan（定时任务）
 ADD_OAF=true           # luci-app-oaf（应用过滤，含内核模块，高风险）
 ADD_LUCI_APP=true       # qwe-qaq/luci-app 仓库（monorepo）
                         #   ├─ luci-app-natmode     NAT 类型三选一（网络 → NAT 类型）
@@ -232,6 +235,20 @@ if [ "$ADD_AIROHA_NPU" = "true" ]; then
   echo "   po/zh_Hans: $(ls -1 "$PODIR/zh_Hans/" 2>/dev/null | tr '\n' ' ')"
 fi
 
+# --- aurora ---
+if [ "$ADD_AURORA" = "true" ]; then
+  clone https://github.com/eamonxg/luci-theme-aurora "$PKG_DIR/luci-theme-aurora" master
+  clone https://github.com/eamonxg/luci-app-aurora-config "$PKG_DIR/luci-theme-aurora" master
+fi
+# --- honk ---
+if [ "$ADD_HONK" = "true" ]; then
+  clone https://github.com/kenzok8/openwrt-honk "package/honk" main 
+fi
+# --- passwall2 ---
+if [ "$ADD_PASSWALL2" = "true" ]; then
+  clone https://github.com/Openwrt-Passwall/openwrt-passwall2 "package/passwall2" main
+  clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages "package/passwall-packages" main
+fi
 # --- passwall ---
 # 源已从 xiaorouji 迁到 Openwrt-Passwall（旧地址 404）。
 # ⚠ 只拷 luci-app-passwall 子目录：同仓的 xray-core/sing-box 等全与 feeds 同名。
