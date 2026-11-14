@@ -19,14 +19,14 @@ mkdir -p "$PKG_DIR"
 # 温度不走插件：autocore 的 /sbin/tempinfo 提供（见 files/sbin/tempinfo）
 # ---------------------------------------------------------
 ADD_AIROHA_NPU=true    # luci-app-airoha-npu：Airoha SoC 状态页（NPU/CPU/Frame Engine/PPE）
-ADD_AURORA=false        # luci-theme-aurora：aurora 风格主题
-ADD_FLUENT=false        # luci-theme-fluent：Fluent 2 风格主题
+ADD_AURORA=true        # luci-theme-aurora：aurora 风格主题
+ADD_FLUENT=false       # luci-theme-fluent：Fluent 2 风格主题
 ADD_FLUENT_LITE=false  # luci-theme-fluent-lite：轻量版（与 fluent 互斥，二选一）
 ADD_FLUENT_DASH=false  # luci-mod-fluentdashboard：可选状态概览卡片
 ADD_HONK=true          # luci-app-honk
-ADD_PASSWALL=false      # luci-app-passwall（只用 feeds 的依赖包）
-ADD_PASSWALL2=false      # luci-app-passwall2（只用 feeds 的依赖包）
-ADD_OPENCLASH=false     # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
+ADD_PASSWALL=false     # luci-app-passwall（只用 feeds 的依赖包）
+ADD_PASSWALL2=false    # luci-app-passwall2
+ADD_OPENCLASH=false    # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
 ADD_MOSDNS=false       # luci-app-mosdns（本体只用 feeds 的 mosdns）
 ADD_LUCKY=false        # luci-app-lucky（DDNS + socat）
 ADD_TAILSCALE=false    # luci-app-tailscale（本体只用 feeds 的 tailscale）
