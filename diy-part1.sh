@@ -242,7 +242,7 @@ if [ "$ADD_AURORA" = "true" ]; then
 fi
 # --- honk ---
 if [ "$ADD_HONK" = "true" ]; then
-  clone https://github.com/szwjp/luci-app-honk "package/honk" main 
+  clone https://github.com/kenzok8/openwrt-honk "package/honk" main 
 fi
 # --- passwall2 ---
 if [ "$ADD_PASSWALL2" = "true" ]; then
