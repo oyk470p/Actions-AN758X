@@ -192,7 +192,7 @@ fi
 # luci-app-airoha-npu，否则 config 里的符号对不上。
 # 源 luanmuc/luci-app-airoha-npu：自带 zh_Hans 翻译，无「根目录+同名子目录」坏结构。
 if [ "$ADD_AIROHA_NPU" = "true" ]; then
-  if ! clone https://github.com/naoki66/luci-app-airoha/tree/main/luci-app-airoha-npu "$PKG_DIR/luci-app-airoha-npu" main; then
+  if ! clone https://github.com/naoki66/luci-app-airoha "$PKG_DIR/luci-app-airoha-npu" main; then
     echo "::error::luci-app-airoha-npu 拉取失败，后续 defconfig 会静默剔除该包"
     exit 1
   fi
