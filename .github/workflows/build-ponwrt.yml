@@ -600,7 +600,7 @@ jobs:
 
           # 关键包校验：defconfig 会静默剔除 feeds 里不存在的包，光口链路必须还在
           MISSING=""
-          for p in kmod-airoha-xpon kmod-airoha-pon-frontend airoha-pond airoha-ponctl luci-app-pon; do
+          for p in kmod-airoha-xpon kmod-airoha-pon-frontend airoha-pond airoha-ponctl airoha-pon-debug luci-app-onu; do
             if ! grep -q "^CONFIG_PACKAGE_${p}=y" .config; then
               MISSING="$MISSING $p"
             fi
@@ -727,6 +727,9 @@ jobs:
           # 中文包（po 注入后才存在，缺失只警告不阻断）
           if ! grep -q "^CONFIG_PACKAGE_luci-i18n-airoha-npu-zh-cn=y" .config; then
             echo "::warning::luci-i18n-airoha-npu-zh-cn 未启用（po/zh_Hans 未注入？界面将为英文）"
+          fi
+          if ! grep -q "^CONFIG_PACKAGE_luci-i18n-onu-zh-cn=y" .config; then
+            echo "::warning::luci-i18n-onu-zh-cn 未启用（ONU 界面将为英文）"
           fi
 
           # 加密可选包复核（只警告）：源码树里没有的包会被 defconfig 静默删掉，
