@@ -19,22 +19,8 @@ mkdir -p "$PKG_DIR"
 # 温度不走插件：autocore 的 /sbin/tempinfo 提供（见 files/sbin/tempinfo）
 # ---------------------------------------------------------
 ADD_AIROHA_NPU=true    # luci-app-airoha-npu：Airoha SoC 状态页（NPU/CPU/Frame Engine/PPE）
-ADD_FLUENT=true        # luci-theme-fluent：Fluent 2 风格主题
-ADD_FLUENT_LITE=false  # luci-theme-fluent-lite：轻量版（与 fluent 互斥，二选一）
-ADD_FLUENT_DASH=false  # luci-mod-fluentdashboard：可选状态概览卡片
-ADD_PASSWALL=true      # luci-app-passwall（只用 feeds 的依赖包）
-ADD_OPENCLASH=true     # luci-app-openclash ⚠ 依赖 Ruby/Rust，编译极慢
-ADD_MOSDNS=true        # luci-app-mosdns（本体只用 feeds 的 mosdns）
-ADD_LUCKY=true         # luci-app-lucky（DDNS + socat）
-ADD_TAILSCALE=true     # luci-app-tailscale（本体只用 feeds 的 tailscale）
-ADD_OPENLIST=true      # luci-app-openlist2（alist/openlist 挂载）
-ADD_SMARTDNS=true      # luci-app-smartdns（本体只用 feeds 的 smartdns）
-ADD_EASYTIER=true      # luci-app-easytier（另需 kmod-tun + easytier 本体，Rust 编译较慢）
-ADD_POWEROFF=true      # luci-app-poweroffdevice（关机）
-ADD_OWQ_WOL=true       # luci-app-owq-wol（网络唤醒，依赖 etherwake）
-ADD_WATCHDOG=true      # luci-app-watchdog（看门狗，包在子目录，需特殊处理）
-ADD_TASKPLAN=true      # luci-app-taskplan（定时任务）
-ADD_OAF=true           # luci-app-oaf（应用过滤，含内核模块，高风险）
+ADD_AURORA=true        # luci-theme-aurora：aurora 风格主题
+ADD_HONK=true          # luci-app-honk
 ADD_LUCI_APP=true       # qwe-qaq/luci-app 仓库（monorepo）
                         #   ├─ luci-app-natmode     NAT 类型三选一（网络 → NAT 类型）
                         #   ├─ luci-app-pon-status  PON 光模块卡片（概览页「系统」下一格）
@@ -206,7 +192,7 @@ fi
 # luci-app-airoha-npu，否则 config 里的符号对不上。
 # 源 luanmuc/luci-app-airoha-npu：自带 zh_Hans 翻译，无「根目录+同名子目录」坏结构。
 if [ "$ADD_AIROHA_NPU" = "true" ]; then
-  if ! clone https://github.com/luanmuc/luci-app-airoha-npu "$PKG_DIR/luci-app-airoha-npu" main; then
+  if ! clone https://github.com/naoki66/luci-app-airoha/tree/main/luci-app-airoha-npu "$PKG_DIR/luci-app-airoha-npu" main; then
     echo "::error::luci-app-airoha-npu 拉取失败，后续 defconfig 会静默剔除该包"
     exit 1
   fi
@@ -231,128 +217,16 @@ if [ "$ADD_AIROHA_NPU" = "true" ]; then
   fi
   echo "   po/zh_Hans: $(ls -1 "$PODIR/zh_Hans/" 2>/dev/null | tr '\n' ' ')"
 fi
-
-# --- passwall ---
-# 源已从 xiaorouji 迁到 Openwrt-Passwall（旧地址 404）。
-# ⚠ 只拷 luci-app-passwall 子目录：同仓的 xray-core/sing-box 等全与 feeds 同名。
-if [ "$ADD_PASSWALL" = "true" ]; then
-  PW_TMP="$(mktemp -d)/pw"
-  if clone https://github.com/Openwrt-Passwall/openwrt-passwall "$PW_TMP" main \
-     && [ -f "$PW_TMP/luci-app-passwall/Makefile" ]; then
-    rm -rf "$PKG_DIR/luci-app-passwall"
-    cp -r "$PW_TMP/luci-app-passwall" "$PKG_DIR/"
-    echo "✅ 已拷贝: luci-app-passwall"
-  else
-    echo "::error::luci-app-passwall 拉取失败或结构变化"
-  fi
-  rm -rf "$PW_TMP"
+# --- aurora ---
+if [ "$ADD_AURORA" = "true" ]; then
+  clone https://github.com/eamonxg/luci-theme-aurora "$PKG_DIR/luci-theme-aurora" master
+  clone https://github.com/eamonxg/luci-app-aurora-config "$PKG_DIR/luci-app-aurora-config" master
 fi
-# --- openclash ---
-if [ "$ADD_OPENCLASH" = "true" ]; then
-  echo "::warning::OpenClash 会触发 Ruby/Rust 编译，耗时极长"
-  clone https://github.com/vernesong/OpenClash "$PKG_DIR/OpenClash" master
-  mv "$PKG_DIR/OpenClash/luci-app-openclash" "$PKG_DIR/luci-app-openclash" 2>/dev/null
-  rm -rf "$PKG_DIR/OpenClash"
-fi
-# --- mosdns ---
-# ⚠ 只拷 luci-app-mosdns：仓库还带 mosdns 本体与 v2ray-geodata，均与 feeds 同名。
-if [ "$ADD_MOSDNS" = "true" ]; then
-  MD_TMP="$(mktemp -d)/mosdns"
-  if clone https://github.com/sbwml/luci-app-mosdns "$MD_TMP" v5 \
-     && [ -f "$MD_TMP/luci-app-mosdns/Makefile" ]; then
-    rm -rf "$PKG_DIR/luci-app-mosdns" "$PKG_DIR/geo2txt"
-    cp -r "$MD_TMP/luci-app-mosdns" "$PKG_DIR/"
-    # geo2txt 是 luci-app-mosdns 的硬依赖（LUCI_DEPENDS 里 +geo2txt），
-    # feeds 里没有同名包，必须一起拷进来，否则索引时报
-    # "has a dependency on 'geo2txt', which does not exist"
-    if [ -f "$MD_TMP/geo2txt/Makefile" ]; then
-      cp -r "$MD_TMP/geo2txt" "$PKG_DIR/"
-      echo "✅ 已拷贝: geo2txt（luci-app-mosdns 依赖）"
-    else
-      echo "::warning::mosdns 仓库里没有 geo2txt，luci-app-mosdns 会缺这个依赖"
-    fi
-    echo "✅ 已拷贝: luci-app-mosdns（本体用 feeds）"
-  else
-    echo "::error::luci-app-mosdns 拉取失败或结构变化"
-  fi
-  rm -rf "$MD_TMP"
-fi
-# --- lucky ---
-if [ "$ADD_LUCKY" = "true" ]; then
-  clone https://github.com/sirpdboy/luci-app-lucky "$PKG_DIR/luci-app-lucky" main
-fi
-# --- tailscale ---
-if [ "$ADD_TAILSCALE" = "true" ]; then
-  clone https://github.com/asvow/luci-app-tailscale "$PKG_DIR/luci-app-tailscale" main
-fi
-# --- openlist2 ---
-if [ "$ADD_OPENLIST" = "true" ]; then
-  clone https://github.com/sbwml/luci-app-openlist2 "$PKG_DIR/luci-app-openlist2" main
+# --- honk ---
+if [ "$ADD_HONK" = "true" ]; then
+  clone https://github.com/kenzok8/openwrt-honk "package/honk" main 
 fi
 
-# --- smartdns ---
-# ⚠ 不拉 pymumu/smartdns 本体：与 feeds/packages/net/smartdns 同名。
-if [ "$ADD_SMARTDNS" = "true" ]; then
-  clone https://github.com/pymumu/luci-app-smartdns "$PKG_DIR/luci-app-smartdns" master
-fi
-# --- luci-theme-fluent ---
-# ⚠ 包在仓库的 package/ 子目录下，不能直接 clone 到 package/custom，
-#   必须把子目录拷出来，否则 buildroot 扫不到 Makefile
-if [ "$ADD_FLUENT" = "true" ] || [ "$ADD_FLUENT_LITE" = "true" ] || [ "$ADD_FLUENT_DASH" = "true" ]; then
-  FLUENT_TMP="$(mktemp -d)/fluent"
-  clone https://github.com/LazuliKao/luci-theme-fluent "$FLUENT_TMP" main
-
-  for p in luci-theme-fluent luci-theme-fluent-lite luci-mod-fluentdashboard; do
-    case "$p" in
-      luci-theme-fluent)        [ "$ADD_FLUENT" = "true" ] || continue ;;
-      luci-theme-fluent-lite)   [ "$ADD_FLUENT_LITE" = "true" ] || continue ;;
-      luci-mod-fluentdashboard) [ "$ADD_FLUENT_DASH" = "true" ] || continue ;;
-    esac
-    [ -d "$FLUENT_TMP/package/$p" ] || { echo "::error::$p 不存在"; continue; }
-    rm -rf "$PKG_DIR/$p"
-    cp -a "$FLUENT_TMP/package/$p" "$PKG_DIR/$p"
-    echo "✅ 已拷贝: $p"
-  done
-  rm -rf "$FLUENT_TMP"
-fi
-
-if [ "$ADD_EASYTIER" = "true" ]; then
-  clone https://github.com/EasyTier/luci-app-easytier "$PKG_DIR/luci-app-easytier" main
-fi
-if [ "$ADD_POWEROFF" = "true" ]; then
-  clone https://github.com/sirpdboy/luci-app-poweroffdevice "$PKG_DIR/luci-app-poweroffdevice" master
-fi
-if [ "$ADD_OWQ_WOL" = "true" ]; then
-  clone https://github.com/isalikai/luci-app-owq-wol "$PKG_DIR/luci-app-owq-wol" main
-fi
-if [ "$ADD_TASKPLAN" = "true" ]; then
-  clone https://github.com/sirpdboy/luci-app-taskplan "$PKG_DIR/luci-app-taskplan" main
-fi
-# --- watchdog ---
-# ⚠ 仓库是 monorepo：根目录无 Makefile，luci-app-watchdog/（前端）与
-#   watchdog/（本体）是两个包，前者依赖 +watchdog，两个都要拷。
-#   只拷前端时索引会报 "has a dependency on 'watchdog', which does not exist"。
-if [ "$ADD_WATCHDOG" = "true" ]; then
-  WD_TMP="$(mktemp -d)/wd"
-  if clone https://github.com/sirpdboy/luci-app-watchdog "$WD_TMP" main; then
-    for p in luci-app-watchdog watchdog; do
-      [ -f "$WD_TMP/$p/Makefile" ] || { echo "::warning::$p 不存在（上游改结构了？）"; continue; }
-      rm -rf "$PKG_DIR/$p"
-      cp -r "$WD_TMP/$p" "$PKG_DIR/"
-      echo "✅ 已拷贝: $p"
-    done
-  else
-    echo "::error::luci-app-watchdog 拉取失败"
-  fi
-  rm -rf "$WD_TMP"
-fi
-if [ "$ADD_OAF" = "true" ]; then
-  clone https://github.com/destan19/OpenAppFilter "$PKG_DIR/OpenAppFilter" master
-  for p in luci-app-oaf open-app-filter oaf; do
-    cp -r "$PKG_DIR/OpenAppFilter/$p" "$PKG_DIR/" 2>/dev/null
-  done
-  rm -rf "$PKG_DIR/OpenAppFilter"
-fi
 # ---------------------------------------------------------
 # 校验：开关为 true 的包必须拉到，否则 defconfig 会静默剔除
 # ---------------------------------------------------------
@@ -452,15 +326,6 @@ if [ -n "$(ls -A "$PKG_DIR" 2>/dev/null)" ]; then
       *)               echo "$1" ;;
     esac
   }
-  # 目录名和 PKG_NAME 毫无关系时（l1parser → ucode-mod-l1parser、
-  # mt_wifi7 → kmod-mt_wifi7），按目录名猜包名必然误报。
-  # .packageinfo 每段都带 "Source: <相对目录>"，按目录反查是唯一可靠的判据。
-  pkg_by_source() {
-    awk -v src="$1" '
-      /^Package: / { p = $2 }
-      /^Source: /  { if ($2 == src && p != "") printf "%s ", p }
-    ' tmp/.packageinfo 2>/dev/null
-  }
 
   for d in "$PKG_DIR"/*; do
     [ -d "$d" ] || continue
@@ -479,16 +344,11 @@ if [ -n "$(ls -A "$PKG_DIR" 2>/dev/null)" ]; then
         if grep -qx "Package: $sn" tmp/.packageinfo 2>/dev/null; then
           echo "  ✅ $n → $sn"
         else
-          real="$(pkg_by_source "$d/$sn")"
-          if [ -n "$real" ]; then
-            echo "  ✅ $n → $(echo $real | cut -d' ' -f1-3)"
-          else
-            echo "  ❌ $n → $sn —— tmp/.packageinfo 里查不到"
-            INDEX_MISS="$INDEX_MISS $sn"
-            for f in "logs/package/$sn/dump.txt" "logs/package/custom/$sn/dump.txt"; do
-              [ -f "$f" ] && { echo "===== $f ====="; tail -25 "$f"; }
-            done
-          fi
+          echo "  ❌ $n → $sn —— tmp/.packageinfo 里查不到"
+          INDEX_MISS="$INDEX_MISS $sn"
+          for f in "logs/package/$sn/dump.txt" "logs/package/custom/$sn/dump.txt"; do
+            [ -f "$f" ] && { echo "===== $f ====="; tail -25 "$f"; }
+          done
         fi
       done
       [ "$found" = 1 ] || echo "  -  $n（无 Makefile，跳过）"
@@ -498,32 +358,20 @@ if [ -n "$(ls -A "$PKG_DIR" 2>/dev/null)" ]; then
     pn="$(pkgname_of "$n")"
     if grep -qx "Package: $pn" tmp/.packageinfo 2>/dev/null; then
       echo "  ✅ $n${pn:+$([ "$pn" != "$n" ] && echo " → $pn")}"
-      continue
-    fi
-    # 目录名猜错不算缺失：按 Source 反查真实包名（含 KernelPackage 的
-    # kmod-* 变体），命中即通过，避免「包明明在索引里却报 ❌」。
-    real="$(pkg_by_source "$d")"
-    if [ -n "$real" ]; then
-      echo "  ✅ $n → $(echo $real | cut -d' ' -f1-3)"
-      continue
-    fi
-    echo "  ❌ $n（包名 $pn）—— tmp/.packageinfo 里查不到"
-    INDEX_MISS="$INDEX_MISS $pn"
-    # 真实错误在这里（scan.mk 落盘路径 logs/<SCAN_DIR>/<相对目录>/dump.txt）
-    DUMP_SHOWN=0
-    for f in "logs/package/$n/dump.txt" "logs/package/custom/$n/dump.txt"; do
-      [ -f "$f" ] && { echo "===== $f ====="; tail -25 "$f"; DUMP_SHOWN=1; }
-    done
-    # scan.mk 压根没落 dump.txt（缓存跳过扫描时常见）：直接单包 dump 一次，
-    # 把 Makefile 解析错误打出来，避免「查不到但日志里没有任何线索」。
-    if [ "$DUMP_SHOWN" -eq 0 ]; then
-      echo "===== 直接 dump: make $d/dump V=s ====="
-      # 没有 .config 时 toplevel.mk 会把 dump 走到 menuconfig 分支，
-      # CI 无 TTY 直接 "Error opening terminal: unknown"，一行 Makefile
-      # 错误都看不到。补一个空 .config 即可：后续 Load custom
-      # configuration 是用 >> 追加，空文件与「文件不存在」等价。
-      [ -f .config ] || : > .config
-      make "$d/dump" V=s 2>&1 | tail -40
+    else
+      echo "  ❌ $n（包名 $pn）—— tmp/.packageinfo 里查不到"
+      INDEX_MISS="$INDEX_MISS $pn"
+      # 真实错误在这里（scan.mk 落盘路径 logs/<SCAN_DIR>/<相对目录>/dump.txt）
+      DUMP_SHOWN=0
+      for f in "logs/package/$n/dump.txt" "logs/package/custom/$n/dump.txt"; do
+        [ -f "$f" ] && { echo "===== $f ====="; tail -25 "$f"; DUMP_SHOWN=1; }
+      done
+      # scan.mk 压根没落 dump.txt（缓存跳过扫描时常见）：直接单包 dump 一次，
+      # 把 Makefile 解析错误打出来，避免「查不到但日志里没有任何线索」。
+      if [ "$DUMP_SHOWN" -eq 0 ]; then
+        echo "===== 直接 dump: make $d/dump V=s ====="
+        make "$d/dump" V=s 2>&1 | tail -40
+      fi
     fi
   done
   echo "------------------------------------------"
@@ -537,22 +385,6 @@ if [ -n "$(ls -A "$PKG_DIR" 2>/dev/null)" ]; then
     REQUIRED="$REQUIRED luci-app-natmode luci-app-pon-status luci-app-igmpproxy"
   fi
 
-  # 与 configs/*.config 里 =y 的包一一对应；没进索引的会被 defconfig 静默剔除。
-  [ "$ADD_FLUENT"    = "true" ] && REQUIRED="$REQUIRED luci-theme-fluent"
-  [ "$ADD_OPENCLASH" = "true" ] && REQUIRED="$REQUIRED luci-app-openclash"
-  [ "$ADD_PASSWALL"  = "true" ] && REQUIRED="$REQUIRED luci-app-passwall"
-  [ "$ADD_MOSDNS"    = "true" ] && REQUIRED="$REQUIRED luci-app-mosdns"
-  [ "$ADD_LUCKY"     = "true" ] && REQUIRED="$REQUIRED luci-app-lucky"
-  [ "$ADD_TAILSCALE" = "true" ] && REQUIRED="$REQUIRED luci-app-tailscale"
-  [ "$ADD_OPENLIST"  = "true" ] && REQUIRED="$REQUIRED luci-app-openlist2"
-  [ "$ADD_SMARTDNS"  = "true" ] && REQUIRED="$REQUIRED luci-app-smartdns"
-  [ "$ADD_EASYTIER"  = "true" ] && REQUIRED="$REQUIRED luci-app-easytier"
-  [ "$ADD_POWEROFF"  = "true" ] && REQUIRED="$REQUIRED luci-app-poweroffdevice"
-  [ "$ADD_OWQ_WOL"   = "true" ] && REQUIRED="$REQUIRED luci-app-owq-wol"
-  [ "$ADD_WATCHDOG"  = "true" ] && REQUIRED="$REQUIRED luci-app-watchdog"
-  [ "$ADD_TASKPLAN"  = "true" ] && REQUIRED="$REQUIRED luci-app-taskplan"
-  [ "$ADD_OAF"       = "true" ] && REQUIRED="$REQUIRED luci-app-oaf"
-  true
   if [ "$ADD_FTTR" = "true" ] && [ "$FTTR_PROFILE" = "h3c_hm2004-du" ]; then
     # KernelPackage 生成的包名带 kmod- 前缀，索引里写的是 kmod-h3c-fmcs
     if [ "$ADD_FMCS" = "true" ]; then
